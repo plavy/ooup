@@ -26,12 +26,6 @@ typedef struct vAnimal
     PTRFUN animalMenu;
 } vAnimal;
 
-typedef struct Animal
-{
-    const char *name;
-    const vAnimal *vtable;
-} Animal;
-
 const vAnimal vDog = {
     .animalGreet = dogGreet,
     .animalMenu = dogMenu,
@@ -41,6 +35,12 @@ const vAnimal vCat = {
     .animalGreet = catGreet,
     .animalMenu = catMenu,
 };
+
+typedef struct Animal
+{
+    const char *name;
+    const vAnimal *vtable;
+} Animal;
 
 void animalPrintGreeting(Animal const *obj)
 {
