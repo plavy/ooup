@@ -91,8 +91,12 @@ def main():
     dt = DistributionTester(SequentialGenerator(1, 8, 2), NearestRank())
     dt.solve()
 
+    print("---")
+
     dt = DistributionTester(RandomGenerator(1, 0.5, 10), InterpolatedRank())
     dt.solve()
+
+    print("---")
 
     dt = DistributionTester(FibonacciGenerator(6), InterpolatedRank())
     dt.solve()
