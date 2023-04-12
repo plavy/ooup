@@ -3,7 +3,7 @@ def mymax(iterable, key=lambda x: x):
     max_key=None
 
     for x in iterable:
-        if not max_key or key(x) > max_key:
+        if max_key is None or key(x) > max_key:
             max_x = x
             max_key = key(x)
 

@@ -10,42 +10,35 @@ struct Point
 
 class Shape
 {
+protected:
+    Point center_;
 public:
     virtual void draw() = 0;
-    virtual void move(int, int ) = 0;
+    virtual void move(int x, int y){
+        this->center_.x += x;
+        this->center_.y += y;
+    }
 };
 class Square : Shape
 {
 private:
     double side_;
-    Point center_;
 
 public:
     virtual void draw()
     {
-        std::cout << "Center: " << this->center_.x << ", " << this->center_.y << "\n";
-    }
-    virtual void move(int x, int y)
-    {
-        this->center_.x += x;
-        this->center_.y += y;
+        std::cout << "Square with center: " << this->center_.x << ", " << this->center_.y << "\n";
     }
 };
 class Circle : Shape
 {
 private:
     double radius_;
-    Point center_;
 
 public:
     virtual void draw()
     {
-        std::cout << "Center: " << this->center_.x << ", " << this->center_.y << "\n";
-    }
-    virtual void move(int x, int y)
-    {
-        this->center_.x += x;
-        this->center_.y += y;
+        std::cout << "Circle with center: " << this->center_.x << ", " << this->center_.y << "\n";
     }
 };
 class Rhomb : Shape
@@ -53,17 +46,11 @@ class Rhomb : Shape
 private:
     double e_;
     double f_;
-    Point center_;
 
 public:
     virtual void draw()
     {
-        std::cout << "Center: " << this->center_.x << ", " << this->center_.y << "\n";
-    }
-    virtual void move(int x, int y)
-    {
-        this->center_.x += x;
-        this->center_.y += y;
+        std::cout << "Rhomb with center: " << this->center_.x << ", " << this->center_.y << "\n";
     }
 };
 

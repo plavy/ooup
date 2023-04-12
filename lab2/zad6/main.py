@@ -18,24 +18,37 @@ def eval_expression(exp, variables={}):
 
 class Cell:
     parent = None
+    ref = None
     exp = None
     value = None
-    dependent_cells = None
+    cells_to_notify = None
 
     def __init__(self, parent):
         self.parent = parent
         self.exp = '0'
         self.value = 0
-        self.dependent_cells = []
+        self.cells_to_notify = []
 
-    def add_dependent_cell(self, cell):
-        if self in cell.dependent_cells:
-            raise RuntimeError(f"{cell.exp} depends on {self.exp}")
-        self.dependent_cells.append(cell)
+    def attach(self, cell):
+        self.cells_to_notify.append(cell)
+
+    def dettach(self, cell):
+        self.cells_to_notify.remove(cell)
+
+    def update(self):
+        queue = [self]
+        while len(queue) > 0:
+            cell = queue.pop(0)
+            if self in cell.cells_to_notify:
+                # cell.exp = '0'
+                raise RuntimeError(f"{cell.ref} already depends on {self.ref}")
+            queue.extend(cell.cells_to_notify)
+        self.parent.evaluate(self)
+        self.notify()
 
     def notify(self):
-        for cell in self.dependent_cells:
-            self.parent.evaluate(cell)
+        for cell in self.cells_to_notify:
+            cell.update()
 
 class Sheet:
     matrix = None
@@ -55,21 +68,22 @@ class Sheet:
         return self.matrix[i][j]
 
     def set(self, ref, exp):
-        i, j = self.get_pos_from_ref(ref)
-        cell = self.matrix[i][j]
+        cell = self.cell(ref)
+        cell.ref = ref
+        dependencies = self.get_refs(cell)
+        for dep_cell in dependencies:
+            dep_cell.dettach(cell)
         cell.exp = exp
         dependencies = self.get_refs(cell)
         for dep_cell in dependencies:
-            dep_cell.add_dependent_cell(cell)
-        self.evaluate(cell)
-        cell.notify()
+            dep_cell.attach(cell)
+        cell.update()
 
     def get_refs(self, cell):
         cells_refs = re.findall(r'[a-zA-Z]+[0-9]+', cell.exp)
         cells = []
         for ref in cells_refs:
-            i, j = self.get_pos_from_ref(ref)
-            cells.append(self.matrix[i][j])
+            cells.append(self.cell(ref))
         return cells
 
     def evaluate(self, cell):
@@ -79,7 +93,9 @@ class Sheet:
             return
         D = {}
         for ref in refs:
-            D[ref] = self.cell(ref).value
+            cell_ref = self.cell(ref)
+            self.evaluate(cell_ref)
+            D[ref] = cell_ref.value
         cell.value = eval_expression(cell.exp, D)
 
     def print(self, values=True):
@@ -96,14 +112,17 @@ def main():
     s.set('A3','A1+A2')
     s.set('A1','4')
     s.set('A4','A1+A3')
+    s.set('A5','A4+2')
     s.print()
     print("---")
 
     try:
-        s.set('A1','A3')
+        # s.set('A1','A3')
+        s.set('A1','A5')
     except RuntimeError as e:
         print("Caught exception:", e)
     s.print()
+
 
 if __name__ == "__main__":
     main()
