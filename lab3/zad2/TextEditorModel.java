@@ -177,8 +177,12 @@ public class TextEditorModel {
             setLine(row, lineBuilder.toString());
             notifyTextObservers();
         } else if (getLine(row).isEmpty()) {
-            removeLine(row);
-            moveCursorUp();
+            if (i < 0) {
+                moveCursorUp();
+                removeLine(row);
+            } else if (row < lines.size() - 1) {
+                removeLine(row);
+            }
             notifyTextObservers();
         }
     }
@@ -192,17 +196,30 @@ public class TextEditorModel {
     }
 
     public void deleteRange(LocationRange range) {
-        int row = range.getStart().getRow();
-        int column1 = range.getStart().getColumn();
-        int column2 = range.getStop().getColumn();
-        StringBuilder lineBuilder = new StringBuilder(lines.get(row));
-        lineBuilder.delete(column1, column2);
-        if (range.getStart().isLowerThan(cursorLocation)) {
-            for (int i = column1; i < column2; i++) {
-                moveCursorLeft();
-            }
+        Location start = range.getStart();
+        Location stop = range.getStop();
+        List<String> new_lines = new ArrayList<>();
+        for (int i = start.getRow(); i <= stop.getRow(); i++) {
+            int startColumn = i == start.getRow() ? start.getColumn() : 0;
+            int stopColumn = i == stop.getRow() ? stop.getColumn() : getLine(i).length();
+            new_lines.add(new StringBuilder(getLine(i)).delete(startColumn, stopColumn).toString());
         }
-        setLine(row, lineBuilder.toString());
+        for (int i = start.getRow(); i <= stop.getRow(); i++) {
+            removeLine(start.getRow());
+        }
+        insertLines(start.getRow(), new_lines);
+
+        // int row = range.getStart().getRow();
+        // int column1 = range.getStart().getColumn();
+        // int column2 = range.getStop().getColumn();
+        // StringBuilder lineBuilder = new StringBuilder(lines.get(row));
+        // lineBuilder.delete(column1, column2);
+        // if (range.getStart().isLowerThan(cursorLocation)) {
+        //     for (int i = column1; i < column2; i++) {
+        //         moveCursorLeft();
+        //     }
+        // }
+        // setLine(row, lineBuilder.toString());
         notifyTextObservers();
     }
 
@@ -227,6 +244,9 @@ public class TextEditorModel {
     // Insert text
 
     public void insert(char c) {
+        if (selectionRange != null) {
+            deleteRange(selectionRange);
+        }
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         StringBuilder lineBuilder = new StringBuilder(lines.get(row));
@@ -237,6 +257,9 @@ public class TextEditorModel {
     }
 
     public void insert(String text) {
+        if (selectionRange != null) {
+            deleteRange(selectionRange);
+        }
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         StringBuilder lineBuilder = new StringBuilder(lines.get(row));
@@ -247,7 +270,7 @@ public class TextEditorModel {
         for (int i = 0; i < new_lines.size() - 1; i++) {
             moveCursorDown();
         }
-        while(cursorLocation.getColumn() > 0) {
+        while(new_lines.size() > 1 && cursorLocation.getColumn() > 0) {
             moveCursorLeft();
         }
         for (int i = 0; i < text.split("\n", -1)[text.split("\n", -1).length - 1].length(); i++) {
