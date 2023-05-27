@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints.Key;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
@@ -137,6 +138,8 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
 
         if (event.getKeyCode() == KeyEvent.VK_ENTER) {
             model.insert("\n");
+
+            // Move cursor
         } else if (event.getKeyCode() == KeyEvent.VK_LEFT) {
             moveCursor(() -> model.moveCursorLeft(), event.isShiftDown());
         } else if (event.getKeyCode() == KeyEvent.VK_RIGHT) {
@@ -145,6 +148,8 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
             moveCursor(() -> model.moveCursorUp(), event.isShiftDown());
         } else if (event.getKeyCode() == KeyEvent.VK_DOWN) {
             moveCursor(() -> model.moveCursorDown(), event.isShiftDown());
+
+            // Delete text
         } else if (event.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
             if (model.getSelectionRange() == null) {
                 model.deleteBefore();
@@ -157,14 +162,20 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
             } else {
                 model.deleteRange(model.getSelectionRange());
             }
+
+            // Insert text
         } else if ((event.getKeyChar() >= 32 && event.getKeyChar() <= 126) // ASCII codes of alphanumeric, operators,
                 || (event.getKeyChar() >= 128 && event.getKeyChar() <= 1524)) { // interpunction, including HR
                                                                                 // characters...
             model.insert(event.getKeyChar());
+
+            // Close window
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_W) {
             dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Q) {
             dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+
+            // Clipboard
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_C) {
             if (model.getSelectionRange() != null) {
                 clipboard.push(getSelectedString());
@@ -182,8 +193,19 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
                     model.insert(clipboard.peek());
                 }
             }
+
+            // Undo, redo
+        } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Z) {
+            if (model.getUndoManager().isUndoAvailable()) {
+                model.getUndoManager().undo();
+            }
+        } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Y) {
+            if (model.getUndoManager().isRedoAvailable()) {
+                model.getUndoManager().redo();
+            }
         }
 
+        // Unselect
         if (!event.isShiftDown() && event.getKeyCode() != KeyEvent.VK_SHIFT) {
             model.setSelectionRange(null);
         }

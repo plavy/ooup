@@ -9,6 +9,7 @@ public class TextEditorModel {
     private LocationRange selectionRange = null;
     private List<CursorObserver> cursorObservers = new ArrayList<>();
     private List<TextObserver> textObservers = new ArrayList<>();
+    private UndoManager undoManager = new UndoManager();
 
     TextEditorModel(String text) {
 
@@ -147,6 +148,12 @@ public class TextEditorModel {
         }
     }
 
+    public void moveCursorTo(Location new_location) {
+        cursorLocation.setRow(new_location.getRow());
+        cursorLocation.setColumn(new_location.getColumn());
+        notifyCursorObservers();
+    }
+
     // TextObserver
 
     public void addTextObserver(TextObserver ob) {
@@ -170,12 +177,31 @@ public class TextEditorModel {
         int column = cursorLocation.getColumn();
         StringBuilder lineBuilder = new StringBuilder(lines.get(row));
         if (0 <= column + i && column + i < lineBuilder.length()) {
+            char deletedChar = lineBuilder.charAt(column + i);
             lineBuilder.deleteCharAt(column + i);
             if (i < 0) {
                 moveCursorLeft();
             }
             setLine(row, lineBuilder.toString());
             notifyTextObservers();
+            EditAction action = new EditAction() {
+                Location cursorLoc = new Location(cursorLocation);
+                int iDelete = i;
+                char charDelete = deletedChar;
+    
+                @Override
+                public void execute_do() {
+                    moveCursorTo(cursorLoc);
+                    deleteOneChar(iDelete);
+                }
+
+                @Override
+                public void execute_undo() {
+                    moveCursorTo(cursorLoc);
+                    insert(charDelete);
+                }
+            };
+            undoManager.push(action);
         } else if (getLine(row).isEmpty()) {
             if (i < 0) {
                 moveCursorUp();
@@ -208,18 +234,6 @@ public class TextEditorModel {
             removeLine(start.getRow());
         }
         insertLines(start.getRow(), new_lines);
-
-        // int row = range.getStart().getRow();
-        // int column1 = range.getStart().getColumn();
-        // int column2 = range.getStop().getColumn();
-        // StringBuilder lineBuilder = new StringBuilder(lines.get(row));
-        // lineBuilder.delete(column1, column2);
-        // if (range.getStart().isLowerThan(cursorLocation)) {
-        //     for (int i = column1; i < column2; i++) {
-        //         moveCursorLeft();
-        //     }
-        // }
-        // setLine(row, lineBuilder.toString());
         notifyTextObservers();
     }
 
@@ -252,6 +266,23 @@ public class TextEditorModel {
         StringBuilder lineBuilder = new StringBuilder(lines.get(row));
         lineBuilder.insert(column, c);
         setLine(row, lineBuilder.toString());
+        EditAction action = new EditAction() {
+            Location cursorLoc = new Location(cursorLocation);
+            char charInserted = c;
+
+            @Override
+            public void execute_do() {
+                moveCursorTo(cursorLoc);
+                insert(charInserted);
+            }
+
+            @Override
+            public void execute_undo() {
+                moveCursorTo(cursorLoc);
+                deleteAfter();
+            }
+        };
+        undoManager.push(action);
         moveCursorRight();
         notifyTextObservers();
     }
@@ -277,5 +308,15 @@ public class TextEditorModel {
             moveCursorRight();
         }
         notifyTextObservers();
+    }
+
+    // Undo manager
+
+    public void setUndoManager(UndoManager undoManager) {
+        this.undoManager = undoManager;
+    }
+
+    public UndoManager getUndoManager() {
+        return undoManager;
     }
 }
