@@ -1,5 +1,6 @@
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.List;
 
 public class SelectShapeState implements State {
     private DocumentModel model;
@@ -15,7 +16,6 @@ public class SelectShapeState implements State {
             for (GraphicalObject o : new ArrayList<>(model.getSelectedObjects())) {
                 o.setSelected(false);
             }
-            selectedAlone = null;
         }
         GraphicalObject found = model.findSelectedGraphicalObject(mousePoint);
         if (found != null) {
@@ -25,19 +25,21 @@ public class SelectShapeState implements State {
                 found.setSelected(!found.isSelected());
             }
         }
-        if(model.getSelectedObjects().size() == 1) {
+        if (model.getSelectedObjects().size() == 1) {
             GraphicalObject selected = model.getSelectedObjects().get(0);
             selectedAlone = selected;
             int i = model.findSelectedHotPoint(selected, mousePoint);
             if (i >= 0) {
                 selected.setHotPointSelected(i, true);
             }
+        } else {
+            selectedAlone = null;
         }
     }
 
     @Override
     public void mouseUp(Point mousePoint, boolean shiftDown, boolean ctrlDown) {
-        if(model.getSelectedObjects().size() == 1) {
+        if (model.getSelectedObjects().size() == 1) {
             GraphicalObject selected = model.getSelectedObjects().get(0);
             int n = selected.getNumberOfHotPoints();
             for (int i = 0; i < n; i++) {
@@ -48,12 +50,12 @@ public class SelectShapeState implements State {
 
     @Override
     public void mouseDragged(Point mousePoint) {
-        if(model.getSelectedObjects().size() == 1) {
+        if (model.getSelectedObjects().size() == 1) {
             GraphicalObject selected = model.getSelectedObjects().get(0);
             int n = selected.getNumberOfHotPoints();
             int i;
             for (i = 0; i < n; i++) {
-                if (selected.isHotPointSelected(i)){
+                if (selected.isHotPointSelected(i)) {
                     break;
                 }
             }
@@ -66,32 +68,51 @@ public class SelectShapeState implements State {
 
     @Override
     public void keyPressed(int keyCode) {
-        if(keyCode == KeyEvent.VK_ADD) {
+        if (keyCode == KeyEvent.VK_ADD) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 model.increaseZ(o);
             }
-        } else if(keyCode == KeyEvent.VK_SUBTRACT){
+        } else if (keyCode == KeyEvent.VK_SUBTRACT) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 model.decreaseZ(o);
             }
-        } else if(keyCode == KeyEvent.VK_UP) {
+        } else if (keyCode == KeyEvent.VK_UP) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 o.translate(new Point(0, -1));
             }
-        }
-        else if(keyCode == KeyEvent.VK_DOWN) {
+        } else if (keyCode == KeyEvent.VK_DOWN) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 o.translate(new Point(0, 1));
             }
-        }
-        else if(keyCode == KeyEvent.VK_LEFT) {
+        } else if (keyCode == KeyEvent.VK_LEFT) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 o.translate(new Point(-1, 0));
             }
-        }
-        else if(keyCode == KeyEvent.VK_RIGHT) {
+        } else if (keyCode == KeyEvent.VK_RIGHT) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 o.translate(new Point(1, 0));
+            }
+        } else if (keyCode == KeyEvent.VK_G) {
+            List<GraphicalObject> selected = new ArrayList<>(model.getSelectedObjects());
+            if (selected.size() > 1) {
+                // int index = model.list().indexOf(selected.get(0));
+                CompositeShape composite = new CompositeShape(selected);
+                composite.setSelected(true);
+                model.addGraphicalObject(composite);
+                for (GraphicalObject o : selected) {
+                    model.removeGraphicalObject(o);
+                }
+            }
+        } else if (keyCode == KeyEvent.VK_U) {
+            List<GraphicalObject> selected = new ArrayList<>(model.getSelectedObjects());
+            if(selected.size() == 1 && selected.get(0) instanceof CompositeShape) {
+                CompositeShape composite = (CompositeShape)selected.get(0);
+                List<GraphicalObject> objects = new ArrayList<>(composite.getObjects());
+                model.removeGraphicalObject(composite);
+                for (GraphicalObject o : objects) {
+                    o.setSelected(true);
+                    model.addGraphicalObject(o);
+                }
             }
         }
     }
@@ -113,8 +134,8 @@ public class SelectShapeState implements State {
             r.drawLine(points[1], points[2]);
             r.drawLine(points[2], points[3]);
             r.drawLine(points[3], points[0]);
-            if(go == selectedAlone) {
-                for(int i = 0; i < go.getNumberOfHotPoints(); i++) {
+            if (go == selectedAlone) {
+                for (int i = 0; i < go.getNumberOfHotPoints(); i++) {
                     Rectangle hotPointBox = go.getHotPointBox(i);
                     points = GeometryUtil.rectangleToPoints(hotPointBox);
                     r.drawLine(points[0], points[1]);

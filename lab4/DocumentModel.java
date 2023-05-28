@@ -22,8 +22,9 @@ public class DocumentModel {
         public void graphicalObjectChanged(GraphicalObject go) {
             notifyListeners();
         }
+
         public void graphicalObjectSelectionChanged(GraphicalObject go) {
-            if(go.isSelected()) {
+            if (go.isSelected()) {
                 selectedObjects.add(go);
             } else {
                 selectedObjects.remove(go);
@@ -31,14 +32,14 @@ public class DocumentModel {
             notifyListeners();
         }
     };
-	
+
     public DocumentModel() {
     }
 
     // Brisanje svih objekata iz modela (pazite da se sve potrebno odregistrira)
     // i potom obavijeste svi promatrači modela
     public void clear() {
-        while(objects.size() > 0) {
+        while (objects.size() > 0) {
             GraphicalObject pop = objects.remove(0);
             pop.removeGraphicalObjectListener(goListener);
         }
@@ -50,14 +51,20 @@ public class DocumentModel {
     public void addGraphicalObject(GraphicalObject obj) {
         objects.add(obj);
         obj.addGraphicalObjectListener(goListener);
+        if (obj.isSelected()) {
+            obj.setSelected(true);
+        }
         notifyListeners();
     }
 
     // Uklanjanje objekta iz dokumenta (pazite je li već selektiran; odregistrirajte
     // model kao promatrača)
     public void removeGraphicalObject(GraphicalObject obj) {
-        objects.remove(obj);
+        if (obj.isSelected()) {
+            obj.setSelected(false);
+        }
         obj.removeGraphicalObjectListener(goListener);
+        objects.remove(obj);
         notifyListeners();
     }
 
@@ -79,7 +86,7 @@ public class DocumentModel {
 
     // Obavještavanje...
     public void notifyListeners() {
-        for(DocumentModelListener l : listeners) {
+        for (DocumentModelListener l : listeners) {
             l.documentChange();
         }
     }
@@ -115,7 +122,7 @@ public class DocumentModel {
     public GraphicalObject findSelectedGraphicalObject(Point mousePoint) {
         GraphicalObject objectWithMin = null;
         double minDistance = SELECTION_PROXIMITY;
-        for(GraphicalObject go : objects) {
+        for (GraphicalObject go : objects) {
             double distance = go.selectionDistance(mousePoint);
             if (distance <= minDistance) {
                 objectWithMin = go;
@@ -133,7 +140,7 @@ public class DocumentModel {
     public int findSelectedHotPoint(GraphicalObject object, Point mousePoint) {
         int indexWithMin = -1;
         double minDistance = SELECTION_PROXIMITY;
-        for(int i = 0; i < object.getNumberOfHotPoints(); i++) {
+        for (int i = 0; i < object.getNumberOfHotPoints(); i++) {
             double distance = object.getHotPointDistance(i, mousePoint);
             if (distance <= minDistance) {
                 indexWithMin = i;
