@@ -41,6 +41,17 @@ public abstract class AbstractGraphicalObject implements GraphicalObject {
     @Override
     public void setHotPointSelected(int index, boolean selected) {
         hotPointSelected[index] = selected;
+        notifyListeners();
+    }
+
+    @Override
+    public Rectangle getHotPointBox(int index) {
+        int x = getHotPoint(index).getX() - 5;
+        int y = getHotPoint(index).getY() - 5;
+        int width = 10;
+        int height = 10;
+        return new Rectangle(x, y, width, height);
+
     }
 
     @Override
@@ -51,13 +62,15 @@ public abstract class AbstractGraphicalObject implements GraphicalObject {
     @Override
     public void setSelected(boolean selected) {
         this.selected = selected;
+        notifySelectionListeners();
     }
 
     @Override
     public void translate(Point delta) {
         for(int i = 0; i < hotPoints.length; i++) {
-            hotPoints[i].translate(delta);
+            hotPoints[i] = hotPoints[i].translate(delta);
         }
+        notifyListeners();
     }
 
     @Override

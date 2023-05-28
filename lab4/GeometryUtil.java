@@ -31,4 +31,13 @@ public class GeometryUtil {
         // Calculate the distance between p and the closest point on the line segment
         return distanceFromPoint(p, new Point(closestX, closestY));
     }
+
+    public static Point[] rectangleToPoints(Rectangle rectangle) {
+        Point[] points = new Point[4]; 
+        points[0] = new Point(rectangle.getX(), rectangle.getY());
+        points[1] = new Point(rectangle.getX() + rectangle.getWidth(), rectangle.getY());
+        points[2] = new Point(rectangle.getX() + rectangle.getWidth(), rectangle.getY() + rectangle.getHeight());
+        points[3] = new Point(rectangle.getX(), rectangle.getY() + rectangle.getHeight());
+        return points;
+    }
 }

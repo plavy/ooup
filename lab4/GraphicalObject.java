@@ -16,6 +16,7 @@ public interface GraphicalObject {
 	// Geometrijska operacija nad oblikom
 	void translate(Point delta);
 	Rectangle getBoundingBox();
+	Rectangle getHotPointBox(int index);
 	double selectionDistance(Point mousePoint);
 
 	// Podrška za crtanje (dio mosta)

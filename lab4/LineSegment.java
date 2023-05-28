@@ -3,7 +3,7 @@ public class LineSegment extends AbstractGraphicalObject {
     public LineSegment() {
         super(new Point[] {
             new Point(0, 0),
-            new Point(10, 0),
+            new Point(50, 30),
         });
     }
 
@@ -22,7 +22,7 @@ public class LineSegment extends AbstractGraphicalObject {
     @Override
     public Rectangle getBoundingBox() {
         int x = Math.min(getHotPoint(0).getX(), getHotPoint(1).getX());
-        int y = Math.max(getHotPoint(0).getY(), getHotPoint(1).getY());
+        int y = Math.min(getHotPoint(0).getY(), getHotPoint(1).getY());
         int width = Math.abs(getHotPoint(0).getX() - getHotPoint(1).getX());
         int height = Math.abs(getHotPoint(0).getY() - getHotPoint(1).getY());
         return new Rectangle(x, y, width, height);
