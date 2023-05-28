@@ -1,5 +1,4 @@
 import java.awt.event.KeyEvent;
-import java.security.KeyException;
 import java.util.ArrayList;
 
 public class SelectShapeState implements State {
@@ -67,7 +66,6 @@ public class SelectShapeState implements State {
 
     @Override
     public void keyPressed(int keyCode) {
-        System.out.println(keyCode + " " + KeyEvent.VK_ADD);
         if(keyCode == KeyEvent.VK_ADD) {
             for (GraphicalObject o : model.getSelectedObjects()) {
                 model.increaseZ(o);
@@ -75,6 +73,25 @@ public class SelectShapeState implements State {
         } else if(keyCode == KeyEvent.VK_SUBTRACT){
             for (GraphicalObject o : model.getSelectedObjects()) {
                 model.decreaseZ(o);
+            }
+        } else if(keyCode == KeyEvent.VK_UP) {
+            for (GraphicalObject o : model.getSelectedObjects()) {
+                o.translate(new Point(0, -1));
+            }
+        }
+        else if(keyCode == KeyEvent.VK_DOWN) {
+            for (GraphicalObject o : model.getSelectedObjects()) {
+                o.translate(new Point(0, 1));
+            }
+        }
+        else if(keyCode == KeyEvent.VK_LEFT) {
+            for (GraphicalObject o : model.getSelectedObjects()) {
+                o.translate(new Point(-1, 0));
+            }
+        }
+        else if(keyCode == KeyEvent.VK_RIGHT) {
+            for (GraphicalObject o : model.getSelectedObjects()) {
+                o.translate(new Point(1, 0));
             }
         }
     }
