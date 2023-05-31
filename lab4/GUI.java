@@ -5,18 +5,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Stack;
 
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JToolBar;
 
@@ -51,87 +42,17 @@ public class GUI extends JFrame implements DocumentModelListener, KeyListener {
         load_button = new JButton("Učitaj");
         load_button.setFocusable(false);
         toolbar.add(load_button);
-        load_button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                JFileChooser fileChooser = new JFileChooser("Load");
-                int selected = fileChooser.showOpenDialog(canvas);
-                if (selected == JFileChooser.APPROVE_OPTION) {
-                    String fileName = fileChooser.getSelectedFile().getAbsolutePath();
-                    try {
-                        Path src = Paths.get(fileName);
-                        List<String> lines = Files.readAllLines(src);
-
-                        Map<String, GraphicalObject> id_map = new HashMap<>();
-                        for (GraphicalObject o : objects) {
-                            id_map.put(o.getShapeID(), o);
-                        }
-
-                        Stack<GraphicalObject> stack = new Stack<>();
-                        for (String line : lines) {
-                            String id = line.substring(0, line.indexOf(" "));
-                            GraphicalObject obj = id_map.get(id);
-                            String data = line.substring(line.indexOf(" "), line.length()).trim();
-                            obj.load(stack, data);
-                        }
-                        model.clear();
-                        model.addGraphicalObjects(stack);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        System.err.println("Unable to open file!");
-                    }
-                }
-            }
-        });
+        load_button.addActionListener(new LoadListener(canvas, objects, model));
         /// Save
         save_button = new JButton("Pohrani");
         save_button.setFocusable(false);
         toolbar.add(save_button);
-        save_button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                JFileChooser fileChooser = new JFileChooser("Save");
-                int selected = fileChooser.showSaveDialog(canvas);
-                if (selected == JFileChooser.APPROVE_OPTION) {
-                    String fileName = fileChooser.getSelectedFile().getAbsolutePath();
-                    List<String> rows = new ArrayList<>();
-                    for (GraphicalObject o : model.list()) {
-                        o.save(rows);
-                    }
-                    try {
-                        Path dest = Paths.get(fileName);
-                        Files.write(dest, rows);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        System.err.println("Unable to save file!");
-                    }
-                }
-            }
-        });
+        save_button.addActionListener(new SaveListener(canvas, model));
         /// SVG export
         JButton svg_button = new JButton("SVG export");
         svg_button.setFocusable(false);
         toolbar.add(svg_button);
-        svg_button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                JFileChooser fileChooser = new JFileChooser("Export as SVG");
-                int selected = fileChooser.showSaveDialog(canvas);
-                if (selected == JFileChooser.APPROVE_OPTION) {
-                    String fileName = fileChooser.getSelectedFile().getAbsolutePath();
-                    SVGRendererImpl r = new SVGRendererImpl(fileName);
-                    for (GraphicalObject o : model.list()) {
-                        o.render(r);
-                    }
-                    try {
-                        r.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        System.err.println("Unable to save file!");
-                    }
-                }
-            }
-        });
+        svg_button.addActionListener(new SVGExportListener(canvas, model));
         /// Prototypes
         for (GraphicalObject o : objects) {
             if (o.getShapeName() != null) {
