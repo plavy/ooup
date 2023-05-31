@@ -1,5 +1,6 @@
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class SelectShapeState implements State {
@@ -95,23 +96,26 @@ public class SelectShapeState implements State {
         } else if (keyCode == KeyEvent.VK_G) {
             List<GraphicalObject> selected = new ArrayList<>(model.getSelectedObjects());
             if (selected.size() > 1) {
-                // int index = model.list().indexOf(selected.get(0));
+                // Sort by z axis
+                Collections.sort(selected, (a, b) -> Integer.compare(model.list().indexOf(a), model.list().indexOf(b)));
                 CompositeShape composite = new CompositeShape(selected);
+                int index = model.list().indexOf(selected.get(0));
                 composite.setSelected(true);
-                model.addGraphicalObject(composite);
+                model.addGraphicalObject(index, composite);
                 for (GraphicalObject o : selected) {
                     model.removeGraphicalObject(o);
                 }
             }
         } else if (keyCode == KeyEvent.VK_U) {
             List<GraphicalObject> selected = new ArrayList<>(model.getSelectedObjects());
-            if(selected.size() == 1 && selected.get(0) instanceof CompositeShape) {
-                CompositeShape composite = (CompositeShape)selected.get(0);
+            if (selected.size() == 1 && selected.get(0) instanceof CompositeShape) {
+                CompositeShape composite = (CompositeShape) selected.get(0);
+                int index = model.list().indexOf(composite);
                 List<GraphicalObject> objects = new ArrayList<>(composite.getObjects());
                 model.removeGraphicalObject(composite);
-                for (GraphicalObject o : objects) {
-                    o.setSelected(true);
-                    model.addGraphicalObject(o);
+                for (int i = 0; i < objects.size(); i++) {
+                    objects.get(i).setSelected(true);
+                    model.addGraphicalObject(index + i, objects.get(i));
                 }
             }
         }

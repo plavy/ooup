@@ -31,7 +31,7 @@ public interface GraphicalObject {
 	GraphicalObject duplicate();
 	
 	// Podrška za snimanje i učitavanje
-	// public String getShapeID();
-	// public void load(Stack<GraphicalObject> stack, String data);
-	// public void save(List<String> rows);
+	public String getShapeID();
+	public void load(Stack<GraphicalObject> stack, String data);
+	public void save(List<String> rows);
 }

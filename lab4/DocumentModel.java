@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,6 +56,22 @@ public class DocumentModel {
             obj.setSelected(true);
         }
         notifyListeners();
+    }
+
+    // Dodavanje objekta na poziciju
+    public void addGraphicalObject(int index, GraphicalObject obj) {
+        objects.add(index, obj);
+        obj.addGraphicalObjectListener(goListener);
+        if (obj.isSelected()) {
+            obj.setSelected(true);
+        }
+        notifyListeners();
+    }
+
+    public void addGraphicalObjects(Collection<GraphicalObject> coll) {
+        for (GraphicalObject o : coll) {
+            addGraphicalObject(o);
+        }
     }
 
     // Uklanjanje objekta iz dokumenta (pazite je li već selektiran; odregistrirajte

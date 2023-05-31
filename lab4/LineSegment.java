@@ -1,3 +1,6 @@
+import java.util.List;
+import java.util.Stack;
+
 public class LineSegment extends AbstractGraphicalObject {
     
     public LineSegment() {
@@ -44,4 +47,28 @@ public class LineSegment extends AbstractGraphicalObject {
         r.drawLine(getHotPoint(0), getHotPoint(1));
     }
 
+    @Override
+    public String getShapeID() {
+        return "@LINE";
+    }
+
+    @Override
+    public void save(List<String> rows) {
+        StringBuilder builder = new StringBuilder(getShapeID());
+        builder.append(" " + getHotPoint(0).getX());
+        builder.append(" " + getHotPoint(0).getY());
+        builder.append(" " + getHotPoint(1).getX());
+        builder.append(" " + getHotPoint(1).getY());
+        rows.add(builder.toString());
+    }
+
+    @Override
+    public void load(Stack<GraphicalObject> stack, String data) {
+        String[] data_list = data.split(" ");
+        int x0 = Integer.valueOf(data_list[0]);
+        int y0 = Integer.valueOf(data_list[1]);
+        int x1 = Integer.valueOf(data_list[2]);
+        int y1 = Integer.valueOf(data_list[3]);
+        stack.push(new LineSegment(new Point(x0, y0), new Point(x1, y1)));
+    }
 }

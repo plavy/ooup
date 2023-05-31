@@ -1,7 +1,15 @@
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
 
 public class CompositeShape extends AbstractGraphicalObject {
     List<GraphicalObject> objects;
+
+    public CompositeShape() {
+        super(new Point[] {});
+        this.objects = new ArrayList<>();
+    }
 
     public CompositeShape(List<GraphicalObject> objects) {
         super(new Point[] {});
@@ -75,5 +83,31 @@ public class CompositeShape extends AbstractGraphicalObject {
         for(GraphicalObject o : objects) {
             o.translate(delta);
         }
+    }
+
+    @Override
+    public String getShapeID() {
+        return "@COMP";
+    }
+
+    @Override
+    public void save(List<String> rows) {
+        for (GraphicalObject o : objects) {
+            o.save(rows);
+        }
+        StringBuilder builder = new StringBuilder(getShapeID());
+        builder.append(" " + objects.size());
+        rows.add(builder.toString());
+    }
+
+    @Override
+    public void load(Stack<GraphicalObject> stack, String data) {
+        int n = Integer.valueOf(data);
+        List<GraphicalObject> objects = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            objects.add(stack.pop());
+        }
+        Collections.reverse(objects);
+        stack.push(new CompositeShape(objects));
     }
 }

@@ -1,3 +1,6 @@
+import java.util.List;
+import java.util.Stack;
+
 public class Oval extends AbstractGraphicalObject {
 
     public Oval() {
@@ -76,5 +79,30 @@ public class Oval extends AbstractGraphicalObject {
             points[NUMBER_OF_POINTS - i - 1] = new Point((int)x, (int)y2);
         }
         r.fillPolygon(points);
+    }
+
+    @Override
+    public String getShapeID() {
+        return "@OVAL";
+    }
+
+    @Override
+    public void save(List<String> rows) {
+        StringBuilder builder = new StringBuilder(getShapeID());
+        builder.append(" " + getHotPoint(0).getX());
+        builder.append(" " + getHotPoint(0).getY());
+        builder.append(" " + getHotPoint(1).getX());
+        builder.append(" " + getHotPoint(1).getY());
+        rows.add(builder.toString());
+    }
+
+    @Override
+    public void load(Stack<GraphicalObject> stack, String data) {
+        String[] data_list = data.split(" ");
+        int x0 = Integer.valueOf(data_list[0]);
+        int y0 = Integer.valueOf(data_list[1]);
+        int x1 = Integer.valueOf(data_list[2]);
+        int y1 = Integer.valueOf(data_list[3]);
+        stack.push(new Oval(new Point(x0, y0), new Point(x1, y1)));
     }
 }
