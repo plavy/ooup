@@ -1,3 +1,5 @@
+package mytexteditor;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +40,14 @@ public class TextEditorModel {
 
     public String getLine(int i) {
         return this.lines.get(i);
+    }
+
+    public void clear() {
+        String text = LinesUtil.linesToString(lines);
+        int last_index = text.length();
+        Location start = new Location(0, 0);
+        Location stop = LinesUtil.indexToLocation(lines, text, last_index);
+        deleteRange(new LocationRange(start, stop));
     }
 
     // Iterators
@@ -82,7 +92,6 @@ public class TextEditorModel {
 
     public void addCursorObserver(CursorObserver ob) {
         cursorObservers.add(ob);
-        notifyCursorObservers();
     }
 
     public void removeCursorObserver(CursorObserver ob) {
@@ -93,6 +102,10 @@ public class TextEditorModel {
         for (CursorObserver ob : cursorObservers) {
             ob.updateCursorLocation(cursorLocation);
         }
+    }
+
+    public Location getCursorLocation() {
+        return cursorLocation;
     }
 
     // Move cursor
@@ -190,6 +203,7 @@ public class TextEditorModel {
             String final_text = new StringBuilder(text).delete(startIndex, stopIndex).toString();
             setLines(LinesUtil.stringToLines(final_text));
             moveCursorTo(LinesUtil.indexToLocation(lines, final_text, startIndex));
+            setSelectionRange(null);
         }
 
         @Override
@@ -201,8 +215,8 @@ public class TextEditorModel {
 
     public void deleteRange(LocationRange range) {
         DeleteAction action = new DeleteAction(range);
-        undoManager.push(action);
         action.execute_do();
+        undoManager.push(action);
     }
 
     public void deleteBefore() {
@@ -240,6 +254,17 @@ public class TextEditorModel {
         notifyTextObservers();
     }
 
+    public String getSelectedString() {
+        String selectedString = null;
+        if (getSelectionRange() != null) {
+            String text = LinesUtil.linesToString(lines);
+            int start = LinesUtil.locationToIndex(lines, text, getSelectionRange().getStart());
+            int stop = LinesUtil.locationToIndex(lines, text, getSelectionRange().getStop());
+            selectedString = text.substring(start, stop);
+        }
+        return selectedString;
+    }
+
     // Insert text
 
     public class InsertAction extends EditAction {
@@ -264,6 +289,7 @@ public class TextEditorModel {
             setLines(LinesUtil.stringToLines(builder.toString()));
             stop = LinesUtil.indexToLocation(lines, builder.toString(), index + new_text.length());
             moveCursorTo(stop);
+            setSelectionRange(null);
         }
 
         @Override
@@ -274,21 +300,11 @@ public class TextEditorModel {
 
     public void insert(String new_text) {
         InsertAction action = new InsertAction(new_text);
-        undoManager.push(action);
         action.execute_do();
+        undoManager.push(action);
     }
 
     public void insert(char c) {
         insert(String.valueOf(c));
-    }
-
-    // Undo manager
-
-    public void setUndoManager(UndoManager undoManager) {
-        this.undoManager = undoManager;
-    }
-
-    public UndoManager getUndoManager() {
-        return undoManager;
     }
 }

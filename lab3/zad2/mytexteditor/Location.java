@@ -1,3 +1,5 @@
+package mytexteditor;
+
 public class Location {
     private int row = 0;
     private int column = 0;

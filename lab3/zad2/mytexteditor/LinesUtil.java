@@ -1,3 +1,5 @@
+package mytexteditor;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,6 +49,6 @@ public class LinesUtil {
     }
 
     public static List<String> stringToLines(String string) {
-        return Arrays.asList(string.split("\n"));
+        return Arrays.asList(string.split("\n", -1));
     }
 }

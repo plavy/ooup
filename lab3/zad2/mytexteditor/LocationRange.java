@@ -1,3 +1,5 @@
+package mytexteditor;
+
 public class LocationRange {
     private Location start;
     private Location stop;

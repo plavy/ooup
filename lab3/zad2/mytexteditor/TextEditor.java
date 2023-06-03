@@ -1,3 +1,5 @@
+package mytexteditor;
+
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -5,9 +7,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import javax.swing.JComponent;
 
@@ -18,12 +18,15 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
     private UndoManager undoManager;
 
     public TextEditor(TextEditorModel model, UndoManager undoManager, ClipboardStack clipboard) {
-        cursorLocation = new Location(0, 0);
         this.model = model;
         this.undoManager = undoManager;
         this.clipboard = clipboard;
         model.addCursorObserver(this);
         model.addTextObserver(this);
+        
+        cursorLocation = new Location(0, 0);
+        updateCursorLocation(model.getCursorLocation());
+        
         addKeyListener(this);
         setFocusable(true);
     }
@@ -34,7 +37,7 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
         Font font = new Font("Courier", Font.PLAIN, 20);
         g2d.setFont(font);
         int fontHeight = g2d.getFontMetrics().getHeight();
-        int y_offset = 20;
+        int y_offset = g2d.getFontMetrics().getAscent() + 5;
         Iterator<String> allLines = model.allLines();
 
         // Draw selection
@@ -49,7 +52,7 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
                 int stringWidth = g.getFontMetrics()
                         .stringWidth(model.getLine(i).substring(startColumn, stopColumn));
                 g2d.setColor(Color.YELLOW);
-                g2d.fillRect(stringWidthBefore, fontHeight * (i - 1) + y_offset, stringWidth, fontHeight);
+                g2d.fillRect(stringWidthBefore, fontHeight * (i - 1) + y_offset + 2, stringWidth, fontHeight);
             }
         }
 
@@ -108,20 +111,9 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
                 }
             }
         } else {
+            model.setSelectionRange(null);
             method.run();
         }
-    }
-
-    private String getSelectedString() {
-        Location start = model.getSelectionRange().getStart();
-        Location stop = model.getSelectionRange().getStop();
-        List<String> new_lines = new ArrayList<>();
-        for (int i = start.getRow(); i <= stop.getRow(); i++) {
-            int startColumn = i == start.getRow() ? start.getColumn() : 0;
-            int stopColumn = i == stop.getRow() ? stop.getColumn() : model.getLine(i).length();
-            new_lines.add(model.getLine(i).substring(startColumn, stopColumn));
-        }
-        return String.join("\n", new_lines);
     }
 
     public void action_undo() {
@@ -138,15 +130,15 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
 
     public void action_cut() {
         if (model.getSelectionRange() != null) {
-            clipboard.push(getSelectedString());
+            clipboard.push(model.getSelectedString());
             model.deleteRange(model.getSelectionRange());
+            model.setSelectionRange(null);
         }
-
     }
 
     public void action_copy() {
         if (model.getSelectionRange() != null) {
-            clipboard.push(getSelectedString());
+            clipboard.push(model.getSelectedString());
         }
 
     }
@@ -154,12 +146,14 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
     public void action_paste() {
         if (!clipboard.isEmpty()) {
             model.insert(clipboard.peek());
+            model.setSelectionRange(null);
         }
     }
 
     public void action_paste_take() {
         if (!clipboard.isEmpty()) {
             model.insert(clipboard.pop());
+            model.setSelectionRange(null);
         }
     }
 
@@ -215,11 +209,6 @@ public class TextEditor extends JComponent implements KeyListener, CursorObserve
             action_undo();
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Y) {
             action_redo();
-        }
-
-        // Unselect
-        if (!event.isShiftDown() && event.getKeyCode() != KeyEvent.VK_SHIFT) {
-            model.setSelectionRange(null);
         }
     }
 

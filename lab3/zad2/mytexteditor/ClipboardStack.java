@@ -1,3 +1,5 @@
+package mytexteditor;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -8,10 +10,13 @@ public class ClipboardStack {
 
     public void push(String text) {
         this.texts.push(text);
+        notifyClipboardObservers();
     }
 
     public String pop() {
-        return this.texts.pop();
+        String pop = this.texts.pop();
+        notifyClipboardObservers();
+        return pop;
     }
 
     public String peek() {
@@ -24,6 +29,7 @@ public class ClipboardStack {
 
     public void clear() {
         this.texts.clear();
+        notifyClipboardObservers();
     }
 
     public void addClipboardObserver(ClipboardObserver ob) {
