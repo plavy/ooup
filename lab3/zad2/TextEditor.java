@@ -1,40 +1,31 @@
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints.Key;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Function;
 
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
+import javax.swing.JComponent;
 
-public class TextEditor extends JFrame implements KeyListener, CursorObserver, TextObserver {
-    TextEditorModel model;
-    Location cursorLocation;
-    ClipboardStack clipboard;
+public class TextEditor extends JComponent implements KeyListener, CursorObserver, TextObserver {
+    private TextEditorModel model;
+    private Location cursorLocation;
+    private ClipboardStack clipboard;
+    private UndoManager undoManager;
 
-    public TextEditor(TextEditorModel model) {
-        super("Text Editor");
+    public TextEditor(TextEditorModel model, UndoManager undoManager, ClipboardStack clipboard) {
         cursorLocation = new Location(0, 0);
-        clipboard = new ClipboardStack();
         this.model = model;
+        this.undoManager = undoManager;
+        this.clipboard = clipboard;
         model.addCursorObserver(this);
         model.addTextObserver(this);
-
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setPreferredSize(new Dimension(800, 600));
-        pack();
         addKeyListener(this);
         setFocusable(true);
-        setLocationRelativeTo(null);
     }
 
     public void paint(Graphics g) {
@@ -43,7 +34,7 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
         Font font = new Font("Courier", Font.PLAIN, 20);
         g2d.setFont(font);
         int fontHeight = g2d.getFontMetrics().getHeight();
-        int y_offset = 60;
+        int y_offset = 20;
         Iterator<String> allLines = model.allLines();
 
         // Draw selection
@@ -133,6 +124,45 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
         return String.join("\n", new_lines);
     }
 
+    public void action_undo() {
+        if (undoManager.isUndoAvailable()) {
+            undoManager.undo();
+        }
+    }
+
+    public void action_redo() {
+        if (undoManager.isRedoAvailable()) {
+            undoManager.redo();
+        }
+    }
+
+    public void action_cut() {
+        if (model.getSelectionRange() != null) {
+            clipboard.push(getSelectedString());
+            model.deleteRange(model.getSelectionRange());
+        }
+
+    }
+
+    public void action_copy() {
+        if (model.getSelectionRange() != null) {
+            clipboard.push(getSelectedString());
+        }
+
+    }
+
+    public void action_paste() {
+        if (!clipboard.isEmpty()) {
+            model.insert(clipboard.peek());
+        }
+    }
+
+    public void action_paste_take() {
+        if (!clipboard.isEmpty()) {
+            model.insert(clipboard.pop());
+        }
+    }
+
     @Override
     public void keyReleased(KeyEvent event) {
 
@@ -168,41 +198,23 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
                 || (event.getKeyChar() >= 128 && event.getKeyChar() <= 1524)) { // interpunction, including HR
                                                                                 // characters...
             model.insert(event.getKeyChar());
-
-            // Close window
-        } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_W) {
-            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
-        } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Q) {
-            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
-
             // Clipboard
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_C) {
-            if (model.getSelectionRange() != null) {
-                clipboard.push(getSelectedString());
-            }
+            action_copy();
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_X) {
-            if (model.getSelectionRange() != null) {
-                clipboard.push(getSelectedString());
-                model.deleteRange(model.getSelectionRange());
-            }
+            action_cut();
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_V) {
-            if (!clipboard.isEmpty()) {
-                if (event.isShiftDown()) {
-                    model.insert(clipboard.pop());
-                } else {
-                    model.insert(clipboard.peek());
-                }
+            if (!event.isShiftDown()) {
+                action_paste();
+            } else {
+                action_paste_take();
             }
 
             // Undo, redo
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Z) {
-            if (model.getUndoManager().isUndoAvailable()) {
-                model.getUndoManager().undo();
-            }
+            action_undo();
         } else if (event.isControlDown() && event.getKeyCode() == KeyEvent.VK_Y) {
-            if (model.getUndoManager().isRedoAvailable()) {
-                model.getUndoManager().redo();
-            }
+            action_redo();
         }
 
         // Unselect
@@ -213,17 +225,5 @@ public class TextEditor extends JFrame implements KeyListener, CursorObserver, T
 
     @Override
     public void keyTyped(KeyEvent event) {
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                String init_text = "Danas idem u park. Tamo nikad nema kiše, tamo je samo sunce. Volim ići u park kad god mogu.";
-                TextEditorModel model = new TextEditorModel(init_text);
-                JFrame editor = new TextEditor(model);
-                editor.setVisible(true);
-            }
-        });
     }
 }

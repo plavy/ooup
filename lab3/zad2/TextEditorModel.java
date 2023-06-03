@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -9,9 +8,10 @@ public class TextEditorModel {
     private LocationRange selectionRange = null;
     private List<CursorObserver> cursorObservers = new ArrayList<>();
     private List<TextObserver> textObservers = new ArrayList<>();
-    private UndoManager undoManager = new UndoManager();
+    private UndoManager undoManager;
 
-    TextEditorModel(String text) {
+    TextEditorModel(String text, UndoManager undoManager) {
+        this.undoManager = undoManager;
 
         int i = 0;
         int maxLineLen = 40;
@@ -27,28 +27,17 @@ public class TextEditorModel {
         cursorLocation = new Location(lines.size() - 1, lines.get(lines.size() - 1).length());
     }
 
-    // public List<String> getLines() {
-    // return this.lines;
-    // }
+    public List<String> getLines() {
+        return this.lines;
+    }
+
+    public void setLines(List<String> lines) {
+        this.lines = lines;
+        notifyTextObservers();
+    }
 
     public String getLine(int i) {
         return this.lines.get(i);
-    }
-
-    private void setLine(int i, String line) {
-        this.lines.set(i, line);
-    }
-
-    private void insertLine(int i, String line) {
-        this.lines.add(i, line);
-    }
-
-    private void insertLines(int i, List<String> lines) {
-        this.lines.addAll(i, lines);
-    }
-
-    private void removeLine(int i) {
-        this.lines.remove(i);
     }
 
     // Iterators
@@ -109,19 +98,28 @@ public class TextEditorModel {
     // Move cursor
 
     public void moveCursorLeft() {
+        int cursorRow = cursorLocation.getRow();
         int cursorColumn = cursorLocation.getColumn();
         if (cursorColumn > 0) {
             cursorLocation.setColumn(cursorColumn - 1);
-            notifyCursorObservers();
+        } else if (cursorRow > 0 && cursorColumn == 0) {
+            cursorLocation.setRow(cursorRow - 1);
+            cursorLocation.setColumn(getLine(cursorRow - 1).length());
         }
+        notifyCursorObservers();
     }
 
     public void moveCursorRight() {
+        int currentRow = cursorLocation.getRow();
         int cursorColumn = cursorLocation.getColumn();
-        if (cursorColumn < lines.get(cursorLocation.getRow()).length()) {
+        int currentLineLen = lines.get(currentRow).length();
+        if (cursorColumn < currentLineLen) {
             cursorLocation.setColumn(cursorColumn + 1);
-            notifyCursorObservers();
+        } else if (currentRow < getLines().size() - 1 && cursorColumn == currentLineLen) {
+            cursorLocation.setRow(currentRow + 1);
+            cursorLocation.setColumn(0);
         }
+        notifyCursorObservers();
     }
 
     public void moveCursorUp() {
@@ -172,69 +170,53 @@ public class TextEditorModel {
 
     // Delete text
 
-    public void deleteOneChar(int i) {
-        int row = cursorLocation.getRow();
-        int column = cursorLocation.getColumn();
-        StringBuilder lineBuilder = new StringBuilder(lines.get(row));
-        if (0 <= column + i && column + i < lineBuilder.length()) {
-            char deletedChar = lineBuilder.charAt(column + i);
-            lineBuilder.deleteCharAt(column + i);
-            if (i < 0) {
-                moveCursorLeft();
-            }
-            setLine(row, lineBuilder.toString());
-            notifyTextObservers();
-            EditAction action = new EditAction() {
-                Location cursorLoc = new Location(cursorLocation);
-                int iDelete = i;
-                char charDelete = deletedChar;
-    
-                @Override
-                public void execute_do() {
-                    moveCursorTo(cursorLoc);
-                    deleteOneChar(iDelete);
-                }
+    private class DeleteAction extends EditAction {
+        LocationRange range;
+        Location start;
+        String deleted_text;
 
-                @Override
-                public void execute_undo() {
-                    moveCursorTo(cursorLoc);
-                    insert(charDelete);
-                }
-            };
-            undoManager.push(action);
-        } else if (getLine(row).isEmpty()) {
-            if (i < 0) {
-                moveCursorUp();
-                removeLine(row);
-            } else if (row < lines.size() - 1) {
-                removeLine(row);
-            }
-            notifyTextObservers();
+        public DeleteAction(LocationRange range) {
+            this.range = range;
         }
-    }
 
-    public void deleteBefore() {
-        deleteOneChar(-1);
-    }
+        @Override
+        public void execute_do() {
+            start = range.getStart();
+            Location stop = range.getStop();
+            String text = LinesUtil.linesToString(lines);
+            int startIndex = LinesUtil.locationToIndex(lines, text, start);
+            int stopIndex = LinesUtil.locationToIndex(lines, text, stop);
+            deleted_text = text.substring(startIndex, stopIndex);
+            String final_text = new StringBuilder(text).delete(startIndex, stopIndex).toString();
+            setLines(LinesUtil.stringToLines(final_text));
+            moveCursorTo(LinesUtil.indexToLocation(lines, final_text, startIndex));
+        }
 
-    public void deleteAfter() {
-        deleteOneChar(0);
+        @Override
+        public void execute_undo() {
+            moveCursorTo(start);
+            new InsertAction(deleted_text).execute_do();
+        }
     }
 
     public void deleteRange(LocationRange range) {
-        Location start = range.getStart();
-        Location stop = range.getStop();
-        List<String> new_lines = new ArrayList<>();
-        for (int i = start.getRow(); i <= stop.getRow(); i++) {
-            int startColumn = i == start.getRow() ? start.getColumn() : 0;
-            int stopColumn = i == stop.getRow() ? stop.getColumn() : getLine(i).length();
-            new_lines.add(new StringBuilder(getLine(i)).delete(startColumn, stopColumn).toString());
-        }
-        for (int i = start.getRow(); i <= stop.getRow(); i++) {
-            removeLine(start.getRow());
-        }
-        insertLines(start.getRow(), new_lines);
-        notifyTextObservers();
+        DeleteAction action = new DeleteAction(range);
+        undoManager.push(action);
+        action.execute_do();
+    }
+
+    public void deleteBefore() {
+        Location stop = new Location(cursorLocation);
+        moveCursorLeft();
+        Location start = new Location(cursorLocation);
+        deleteRange(new LocationRange(start, stop));
+    }
+
+    public void deleteAfter() {
+        Location start = new Location(cursorLocation);
+        moveCursorRight();
+        Location stop = new Location(cursorLocation);
+        deleteRange(new LocationRange(start, stop));
     }
 
     // Select text
@@ -245,69 +227,59 @@ public class TextEditorModel {
 
     public void setSelectionRange(LocationRange range) {
         this.selectionRange = range;
+        notifyTextObservers();
     }
 
     public void setSelectionStart(Location start) {
         this.selectionRange.setStart(start);
+        notifyTextObservers();
     }
 
     public void setSelectionStop(Location stop) {
         this.selectionRange.setStop(stop);
+        notifyTextObservers();
     }
 
     // Insert text
 
-    public void insert(char c) {
-        if (selectionRange != null) {
-            deleteRange(selectionRange);
+    public class InsertAction extends EditAction {
+        String new_text;
+        Location start;
+        Location stop;
+
+        public InsertAction(String new_text) {
+            this.new_text = new_text;
         }
-        int row = cursorLocation.getRow();
-        int column = cursorLocation.getColumn();
-        StringBuilder lineBuilder = new StringBuilder(lines.get(row));
-        lineBuilder.insert(column, c);
-        setLine(row, lineBuilder.toString());
-        EditAction action = new EditAction() {
-            Location cursorLoc = new Location(cursorLocation);
-            char charInserted = c;
 
-            @Override
-            public void execute_do() {
-                moveCursorTo(cursorLoc);
-                insert(charInserted);
+        @Override
+        public void execute_do() {
+            if (selectionRange != null) {
+                deleteRange(selectionRange);
             }
+            String text = LinesUtil.linesToString(lines);
+            StringBuilder builder = new StringBuilder(text);
+            start = new Location(cursorLocation);
+            int index = LinesUtil.locationToIndex(lines, text, start);
+            builder.insert(index, new_text);
+            setLines(LinesUtil.stringToLines(builder.toString()));
+            stop = LinesUtil.indexToLocation(lines, builder.toString(), index + new_text.length());
+            moveCursorTo(stop);
+        }
 
-            @Override
-            public void execute_undo() {
-                moveCursorTo(cursorLoc);
-                deleteAfter();
-            }
-        };
-        undoManager.push(action);
-        moveCursorRight();
-        notifyTextObservers();
+        @Override
+        public void execute_undo() {
+            new DeleteAction(new LocationRange(start, stop)).execute_do();
+        }
     }
 
-    public void insert(String text) {
-        if (selectionRange != null) {
-            deleteRange(selectionRange);
-        }
-        int row = cursorLocation.getRow();
-        int column = cursorLocation.getColumn();
-        StringBuilder lineBuilder = new StringBuilder(lines.get(row));
-        lineBuilder.insert(column, text);
-        List<String> new_lines = Arrays.asList(lineBuilder.toString().split("\n", -1));
-        removeLine(row);
-        insertLines(row, new_lines);
-        for (int i = 0; i < new_lines.size() - 1; i++) {
-            moveCursorDown();
-        }
-        while(new_lines.size() > 1 && cursorLocation.getColumn() > 0) {
-            moveCursorLeft();
-        }
-        for (int i = 0; i < text.split("\n", -1)[text.split("\n", -1).length - 1].length(); i++) {
-            moveCursorRight();
-        }
-        notifyTextObservers();
+    public void insert(String new_text) {
+        InsertAction action = new InsertAction(new_text);
+        undoManager.push(action);
+        action.execute_do();
+    }
+
+    public void insert(char c) {
+        insert(String.valueOf(c));
     }
 
     // Undo manager
