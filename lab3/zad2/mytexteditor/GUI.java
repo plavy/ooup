@@ -9,9 +9,13 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -20,7 +24,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 
-public class GUI extends JFrame implements KeyListener, TextObserver, UndoManagerObserver, ClipboardObserver, CursorObserver {
+public class GUI extends JFrame
+        implements KeyListener, TextObserver, UndoManagerObserver, ClipboardObserver, CursorObserver {
     TextEditorModel model;
     TextEditor editor;
     UndoManager undoManager;
@@ -45,7 +50,7 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
         setLayout(new BorderLayout());
-        
+
         this.editor = editor;
 
         this.model = model;
@@ -54,7 +59,7 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
 
         this.undoManager = undoManager;
         undoManager.addUndoObserver(this);
-        
+
         this.clipboard = clipboard;
         clipboard.addClipboardObserver(this);
 
@@ -66,9 +71,48 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
         JMenu fileMenu = new JMenu("File");
         menuBar.add(fileMenu);
         JMenuItem openItem = new JMenuItem("Open");
+        openItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                JFileChooser fileChooser = new JFileChooser("Open");
+                int selected = fileChooser.showOpenDialog(editor);
+                if (selected == JFileChooser.APPROVE_OPTION) {
+                    String fileName = fileChooser.getSelectedFile().getAbsolutePath();
+                    try {
+                        Path src = Paths.get(fileName);
+                        model.setLines(Files.readAllLines(src));
+                        int lastRow = model.getLines().size() - 1;
+                        model.moveCursorTo(new Location(lastRow, model.getLine(lastRow).length()));
+                        undoManager.clear();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.err.println("Error while opening file!");
+                    }
+                }
+            }
+        });
         fileMenu.add(openItem);
+
         JMenuItem saveItem = new JMenuItem("Save");
+        saveItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                JFileChooser fileChooser = new JFileChooser("Save");
+                int selected = fileChooser.showSaveDialog(editor);
+                if (selected == JFileChooser.APPROVE_OPTION) {
+                    String fileName = fileChooser.getSelectedFile().getAbsolutePath();
+                    try {
+                        Path dest = Paths.get(fileName);
+                        Files.write(dest, model.getLines());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.err.println("Error while saving file!");
+                    }
+                }
+            }
+        });
         fileMenu.add(saveItem);
+
         JMenuItem exitItem = new JMenuItem("Exit");
         exitItem.addActionListener(new ActionListener() {
             @Override
@@ -156,7 +200,7 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
         // Move menu
         JMenu moveMenu = new JMenu("Move");
         menuBar.add(moveMenu);
-        
+
         JMenuItem cursorStartItem = new JMenuItem("Cursor to document start");
         cursorStartItem.addActionListener(new ActionListener() {
             @Override
@@ -179,7 +223,7 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
         // Toolbar
         JToolBar toolbar = new JToolBar();
         add(toolbar, BorderLayout.PAGE_START);
-        
+
         undoButton = new JButton("Undo");
         undoButton.addActionListener(new ActionListener() {
             @Override
@@ -238,16 +282,15 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
         add(statusBar, BorderLayout.PAGE_END);
 
         // Plugins
-        
-        
         JMenu pluginsMenu = new JMenu("Plugins");
         menuBar.add(pluginsMenu);
-        
+
         File pluginsDir = new File(getClass().getResource("plugins").getFile());
         String[] files = pluginsDir.list();
         for (String file : files) {
             String className = file.substring(0, file.length() - 6);
             try {
+                @SuppressWarnings("unchecked")
                 Class<Plugin> clazz = (Class<Plugin>) Class.forName("mytexteditor.plugins." + className);
                 Plugin plugin = (Plugin) clazz.getConstructor().newInstance();
                 System.out.println("Loaded plugin " + className);
@@ -259,17 +302,12 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
                     }
                 });
                 pluginsMenu.add(pluginItem);
-
-
-
             } catch (Exception e) {
                 e.printStackTrace();
-                System.err.println("Error loading plugins!");
+                System.err.println("Error loading plugin " + className + "!");
             }
         }
-        
 
-        
         updateUndoRedo();
         updateText();
         updateClipboard();
@@ -333,7 +371,8 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
     public void updateUndoRedo() {
         if (undoManager.isUndoAvailable()) {
             undoItem.setEnabled(true);
-            undoButton.setEnabled(true);;
+            undoButton.setEnabled(true);
+            ;
         } else {
             undoItem.setEnabled(false);
             undoButton.setEnabled(false);
@@ -345,7 +384,7 @@ public class GUI extends JFrame implements KeyListener, TextObserver, UndoManage
             redoItem.setEnabled(false);
             redoButton.setEnabled(false);
         }
-        
+
     }
 
     @Override

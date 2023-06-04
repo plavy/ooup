@@ -48,6 +48,12 @@ public class UndoManager {
         notifyUndoObservers();
     }
 
+    public void clear() {
+        redoStack.clear();
+        undoStack.clear();
+        notifyUndoObservers();
+    }
+
     public void addUndoObserver(UndoManagerObserver ob) {
         undoObservers.add(ob);
     }

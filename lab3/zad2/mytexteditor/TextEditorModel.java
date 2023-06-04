@@ -35,6 +35,7 @@ public class TextEditorModel {
 
     public void setLines(List<String> lines) {
         this.lines = lines;
+        setSelectionRange(null);
         notifyTextObservers();
     }
 
@@ -143,8 +144,10 @@ public class TextEditorModel {
             if (cursorLocation.getColumn() > currentLineLen) {
                 cursorLocation.setColumn(currentLineLen);
             }
-            notifyCursorObservers();
+        } else if (cursorRow == 0) {
+            cursorLocation.setColumn(0);
         }
+        notifyCursorObservers();
     }
 
     public void moveCursorDown() {
@@ -155,8 +158,10 @@ public class TextEditorModel {
             if (cursorLocation.getColumn() > currentLineLen) {
                 cursorLocation.setColumn(currentLineLen);
             }
-            notifyCursorObservers();
+        } else if (cursorRow == lines.size() - 1) {
+            cursorLocation.setColumn(lines.get(cursorRow).length());
         }
+        notifyCursorObservers();
     }
 
     public void moveCursorTo(Location new_location) {
@@ -203,7 +208,6 @@ public class TextEditorModel {
             String final_text = new StringBuilder(text).delete(startIndex, stopIndex).toString();
             setLines(LinesUtil.stringToLines(final_text));
             moveCursorTo(LinesUtil.indexToLocation(lines, final_text, startIndex));
-            setSelectionRange(null);
         }
 
         @Override
@@ -220,17 +224,17 @@ public class TextEditorModel {
     }
 
     public void deleteBefore() {
-        Location stop = new Location(cursorLocation);
+        Location before = new Location(cursorLocation);
         moveCursorLeft();
-        Location start = new Location(cursorLocation);
-        deleteRange(new LocationRange(start, stop));
+        Location after = new Location(cursorLocation);
+        deleteRange(new LocationRange(after, before));
     }
 
     public void deleteAfter() {
-        Location start = new Location(cursorLocation);
+        Location before = new Location(cursorLocation);
         moveCursorRight();
-        Location stop = new Location(cursorLocation);
-        deleteRange(new LocationRange(start, stop));
+        Location after = new Location(cursorLocation);
+        deleteRange(new LocationRange(before, after));
     }
 
     // Select text
@@ -289,7 +293,6 @@ public class TextEditorModel {
             setLines(LinesUtil.stringToLines(builder.toString()));
             stop = LinesUtil.indexToLocation(lines, builder.toString(), index + new_text.length());
             moveCursorTo(stop);
-            setSelectionRange(null);
         }
 
         @Override
