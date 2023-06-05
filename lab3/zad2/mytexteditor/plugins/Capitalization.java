@@ -46,7 +46,6 @@ public class Capitalization extends EditAction implements Plugin {
     @Override
     public void execute_undo() {
         model.setLines(LinesUtil.stringToLines(prevText));
-
     }
 
     @Override
