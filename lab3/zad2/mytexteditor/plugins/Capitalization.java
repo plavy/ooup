@@ -40,7 +40,6 @@ public class Capitalization extends EditAction implements Plugin {
             builder.setCharAt(i, Character.toUpperCase(builder.charAt(i)));
         }
         model.setLines(LinesUtil.stringToLines(builder.toString()));
-
     }
 
     @Override

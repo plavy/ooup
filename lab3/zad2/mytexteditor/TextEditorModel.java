@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class TextEditorModel {
-    private List<String> lines = new ArrayList<>();
+    private  List<String> lines = new ArrayList<>();
     private Location cursorLocation = null;
     private LocationRange selectionRange = null;
     private List<CursorObserver> cursorObservers = new ArrayList<>();
